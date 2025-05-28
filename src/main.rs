@@ -1,5 +1,7 @@
+use dotenv::dotenv;
 use midir::{Ignore, MidiInput};
 use std::cell::RefCell;
+use std::env;
 use std::error::Error;
 use std::io::{Write, stdin, stdout};
 
@@ -16,8 +18,8 @@ fn print_ports(midi: &MidiInput) -> () {
 }
 
 fn select_input(midi: &MidiInput) -> std::io::Result<usize> {
-    let ports: Vec<midir::MidiInputPort> = midi.ports();
-    let mut input: String = String::new();
+    let ports = midi.ports();
+    let mut input = String::new();
 
     print_ports(&midi);
 
@@ -56,6 +58,11 @@ fn select_input(midi: &MidiInput) -> std::io::Result<usize> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    // env init
+    dotenv().ok();
+    let threshold_micro_sec = env::var("THRESHOLD_MICRO_SEC")?.parse::<u64>()?;
+    // end env init
+
     let mut midi: MidiInput = MidiInput::new("midir input")?;
     midi.ignore(Ignore::All); // sys-log messages, other data persists
 
@@ -74,16 +81,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         &ports[conn_port_i],
         "midir-read-input",
         move |stamp: u64, message: &[u8], _| {
-            // group notes within threshold_ms effectively as concurrent
-            let threshold_ms: u64 = 10000;
-
+            // group notes within threshold effectively as concurrent
             let mut last: std::cell::RefMut<'_, u64> = last_stamp.borrow_mut();
             let mut b: std::cell::RefMut<'_, Vec<(u64, Vec<u8>)>> = batch.borrow_mut();
 
             println!("Note played:");
             println!("{}: {:?} ({} byte_s)", stamp, message, message.len());
 
-            if (*last == 0) || (stamp - *last) > threshold_ms {
+            if (*last == 0) || (stamp - *last) > threshold_micro_sec {
                 if !b.is_empty() {
                     println!("Note(s):");
                     for (t, msg) in b.iter() {
