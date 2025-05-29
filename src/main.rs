@@ -4,6 +4,12 @@ use std::cell::RefCell;
 use std::env;
 use std::error::Error;
 use std::io::{Write, stdin, stdout};
+use std::sync::mpsc::{Sender, channel};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::{Duration, Instant};
+
+type Message = (u64, Vec<u8>);
 
 fn print_ports(midi: &MidiInput) -> () {
     let ports = midi.ports();
@@ -57,11 +63,51 @@ fn select_input(midi: &MidiInput) -> std::io::Result<usize> {
     }
 }
 
+fn spawn_watcher() -> std::sync::mpsc::Sender<(u64, Vec<u8>)> {
+    let threshold_micro_sec = env::var("THRESHOLD_MICRO_SEC")
+        .unwrap()
+        .parse::<u64>()
+        .unwrap();
+
+    let (tx, rx) = channel::<Message>();
+    let batch = Arc::new(Mutex::new(Vec::new()));
+    let batch_clone = Arc::clone(&batch);
+
+    thread::spawn(move || {
+        let mut last = Instant::now();
+
+        loop {
+            if let Ok(msg) = rx.recv_timeout(Duration::from_micros(threshold_micro_sec)) {
+                let mut b = batch_clone.lock().unwrap();
+                b.push(msg);
+                last = Instant::now();
+            }
+
+            if last.elapsed() > Duration::from_micros(threshold_micro_sec) {
+                let mut b = batch_clone.lock().unwrap();
+                if !b.is_empty() {
+                    println!("Note(s):");
+                    for (t, msg) in b.iter() {
+                        println!("  {:.3}: {:?}", t, msg);
+                    }
+                    println!("--");
+                    b.clear();
+                }
+
+                last = Instant::now(); // reset to avoid repeated flush
+            }
+        }
+    });
+
+    return tx;
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     // env init
     dotenv().ok();
-    let threshold_micro_sec = env::var("THRESHOLD_MICRO_SEC")?.parse::<u64>()?;
     // end env init
+
+    let tx = spawn_watcher().clone();
 
     let mut midi: MidiInput = MidiInput::new("midir input")?;
     midi.ignore(Ignore::All); // sys-log messages, other data persists
@@ -73,34 +119,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let conn_port_i = select_input(&midi)?;
-    let batch: RefCell<Vec<_>> = RefCell::new(Vec::new());
-    let last_stamp: RefCell<u64> = RefCell::new(0u64);
+    // let batch: RefCell<Vec<_>> = RefCell::new(Vec::new());
+    // let last_stamp: RefCell<u64> = RefCell::new(0u64);
 
     println!("Opening connection...");
     let conn_in: midir::MidiInputConnection<()> = midi.connect(
         &ports[conn_port_i],
         "midir-read-input",
-        move |stamp: u64, message: &[u8], _| {
-            // group notes within threshold effectively as concurrent
-            let mut last: std::cell::RefMut<'_, u64> = last_stamp.borrow_mut();
-            let mut b: std::cell::RefMut<'_, Vec<(u64, Vec<u8>)>> = batch.borrow_mut();
-
-            println!("Note played:");
-            println!("{}: {:?} ({} byte_s)", stamp, message, message.len());
-
-            if (*last == 0) || (stamp - *last) > threshold_micro_sec {
-                if !b.is_empty() {
-                    println!("Note(s):");
-                    for (t, msg) in b.iter() {
-                        println!("  {:.3}: {:?}", t, msg);
-                    }
-                    println!("--");
-                    b.clear();
-                }
-            }
-
-            b.push((stamp, message.to_vec()));
-            *last = stamp;
+        move |now: u64, message: &[u8], _| {
+            tx.send((now, message.to_vec())).ok();
         },
         (),
     )?;
