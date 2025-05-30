@@ -3,7 +3,7 @@ fn main() {
 	#[cfg(target_os = "linux")]
 	{
 			let output = std::process::Command::new("pkg-config")
-					.args(["--exists", "alsa-sys"])
+					.args(["--exists", "alsa"])
 					.status()
 					.expect("Failed to run pkg-config");
 
