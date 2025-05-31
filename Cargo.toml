@@ -7,3 +7,5 @@ edition = "2024"
 dotenv = "0.15.0"
 midir = "0.10.1"
 pkg-config = "0.3.32"
+ron = "0.10.1"
+serde = { version = "1", features = ["derive"] }

@@ -1,112 +1,42 @@
 use dotenv::dotenv;
 use midir::{Ignore, MidiInput};
-use std::env;
 use std::error::Error;
 use std::io::{Write, stdin, stdout};
-use std::sync::mpsc::{channel};
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::{Duration, Instant};
+// ---
+mod io;
+mod types;
 
-type Message = (u64, Vec<u8>);
-
-fn print_ports(midi: &MidiInput) -> () {
-    let ports = midi.ports();
-    println!("Available MIDI input ports:");
-    for (i, port) in ports.iter().enumerate() {
-        let port_result: Result<String, midir::PortInfoError> = midi.port_name(port);
-        match port_result {
-            Ok(port) => println!("{}: {:?}", i, port),
-            Err(err) => panic!("{:?}", err),
-        }
-    }
-}
-
-fn select_input(midi: &MidiInput) -> std::io::Result<usize> {
-    let ports = midi.ports();
+fn select_input(midi: MidiInput) -> () {
     let mut input = String::new();
+    let mut selection: u8 = 0;
 
-    print_ports(&midi);
+    print!("Select path [(c)onnect | (t)est | (o)pts]: ");
 
-    match ports.len() {
-        0 => panic!("No ports available"),
-        1 => {
-            println!(
-                "Choosing only available output port: {}",
-                midi.port_name(&ports[0]).unwrap()
-            );
-            return Ok(0);
+    while selection == 0 {
+        input.clear();
+        stdout().flush().unwrap();
+        stdin().read_line(&mut input).unwrap();
+
+        selection = match input.trim() {
+            "c" | "connect" => 1,
+            "t" | "test" => 2,
+            "o" | "opts" => 3,
+            _ => continue,
         }
-        _ => loop {
-            print!("Select input port number: ");
-            input.clear();
-            stdout().flush()?;
-            stdin().read_line(&mut input)?;
-
-            match input.trim().parse::<usize>() {
-                Ok(index) if index < ports.len() => return Ok(index),
-                Ok(index) => println!(
-                    "Invalid selection: {}. Must be less than {}.",
-                    index,
-                    ports.len()
-                ),
-                Err(e) => println!(
-                    "Invalid selection: {:?}. Must be a number less than {}.",
-                    e.kind(),
-                    ports.len()
-                ),
-            }
-            println!("Try again.\n");
-            print_ports(&midi);
-        },
     }
-}
 
-fn spawn_watcher() -> std::sync::mpsc::Sender<(u64, Vec<u8>)> {
-    let threshold_micro_sec = env::var("THRESHOLD_MICRO_SEC")
-        .unwrap()
-        .parse::<u64>()
-        .unwrap();
-
-    let (tx, rx) = channel::<Message>();
-    let batch = Arc::new(Mutex::new(Vec::new()));
-    let batch_clone = Arc::clone(&batch);
-
-    thread::spawn(move || {
-        let mut last = Instant::now();
-
-        loop {
-            if let Ok(msg) = rx.recv_timeout(Duration::from_micros(threshold_micro_sec)) {
-                let mut b = batch_clone.lock().unwrap();
-                b.push(msg);
-                last = Instant::now();
-            }
-
-            if last.elapsed() > Duration::from_micros(threshold_micro_sec) {
-                let mut b = batch_clone.lock().unwrap();
-                if !b.is_empty() {
-                    println!("Note(s):");
-                    for (t, msg) in b.iter() {
-                        println!("  {:.3}: {:?}", t, msg);
-                    }
-                    println!("--");
-                    b.clear();
-                }
-
-                last = Instant::now(); // reset to avoid repeated flush
-            }
-        }
-    });
-
-    return tx;
+    match selection {
+        1 => io::connect::select_port(midi),
+        2 => io::tests::select_test(),
+        3 => io::opts::select_opt(),
+        _ => None,
+    };
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     // env init
     dotenv().ok();
     // end env init
-
-    let tx = spawn_watcher().clone();
 
     let mut midi: MidiInput = MidiInput::new("midir input")?;
     midi.ignore(Ignore::All); // sys-log messages, other data persists
@@ -117,21 +47,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let conn_port_i = select_input(&midi)?;
-    // let batch: RefCell<Vec<_>> = RefCell::new(Vec::new());
-    // let last_stamp: RefCell<u64> = RefCell::new(0u64);
+    select_input(midi);
 
-    println!("Opening connection...");
-    let conn_in: midir::MidiInputConnection<()> = midi.connect(
-        &ports[conn_port_i],
-        "midir-read-input",
-        move |now: u64, message: &[u8], _| {
-            tx.send((now, message.to_vec())).ok();
-        },
-        (),
-    )?;
-
-    let mut input: String = String::new();
+    let mut input = String::new();
     let mut stdout = stdout();
     stdout.write(b"Press Enter to exit.").unwrap();
     stdout.flush().unwrap();
@@ -139,8 +57,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     stdin().read_line(&mut input).unwrap();
 
     println!("Shutting down...");
-    let (_, log_all_bytes) = conn_in.close();
-    println!("Received final bytes: {:?}", log_all_bytes);
-    println!("Terminated.");
+    // let (_, log_all_bytes) = conn_in.close();
+    // println!("Received final bytes: {:?}", log_all_bytes);
+    // println!("Terminated.");
     Ok(())
 }
