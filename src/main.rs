@@ -26,7 +26,7 @@ fn select_input(midi: MidiInput) -> () {
     }
 
     match selection {
-        1 => io::connect::select_port(midi),
+        1 => io::connect::select_device(midi),
         2 => io::tests::select_test(),
         3 => io::opts::select_opt(),
         _ => None,

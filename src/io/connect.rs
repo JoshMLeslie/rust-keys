@@ -81,7 +81,7 @@ fn open_conn(midi: MidiInput, port: &midir::MidiInputPort, tx: Sender<types::mid
         .unwrap();
 }
 
-pub fn select_port(midi: MidiInput) -> Option<usize> {
+pub fn select_device(midi: MidiInput) -> Option<usize> {
     let ports = midi.ports();
     let mut input = String::new();
 
