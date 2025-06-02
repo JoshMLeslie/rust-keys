@@ -1,4 +1,4 @@
-use types;
+use crate::types;
 
 pub const BASIC_TUNE: types::midi::MessageLog = vec![
     (2066617, [144, 67, 64]),
