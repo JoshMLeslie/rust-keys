@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+cpal = "0.15.3"
 dotenv = "0.15.0"
+midi-player = "0.2.1"
 midir = "0.10.1"
+musical-note = "0.1.105"
 pkg-config = "0.3.32"
 ron = "0.10.1"
 serde = { version = "1", features = ["derive"] }

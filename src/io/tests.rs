@@ -1,3 +1,5 @@
+use cpal::{BuildStreamError, Data, Stream};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use midir::MidiInput;
 use std::io::{Write, stdin, stdout};
 use std::usize;
@@ -5,6 +7,8 @@ use std::usize;
 use crate::io::watcher::spawn_watcher;
 use crate::test::basic_tune;
 use crate::types::midi::MessageLog;
+
+use super::audio_out::spawn_audio_loop;
 
 fn run_test<const L: usize>(test_data: &MessageLog<L>) {
     let data = test_data.data;
@@ -18,9 +22,9 @@ const TEST_NAMES: [&str; 1] = ["Basic Tune"];
 
 fn print_tests() {
     println!("Select index of available options:");
-		for(index, name) in TEST_NAMES.iter().enumerate() {
-			println!("{} - {}", index, name);
-		}
+    for (index, name) in TEST_NAMES.iter().enumerate() {
+        println!("{} - {}", index, name);
+    }
 }
 
 pub fn select_test(midi: MidiInput) -> Option<usize> {
@@ -28,6 +32,8 @@ pub fn select_test(midi: MidiInput) -> Option<usize> {
     let mut input = String::new();
 
     let tx = spawn_watcher().clone();
+
+		let stream = spawn_audio_loop();
 
     print_tests();
     input.clear();
