@@ -1,4 +1,5 @@
 use dotenv::dotenv;
+use io::user_input::get_input;
 use midir::{Ignore, MidiInput};
 use std::error::Error;
 use std::io::{Write, stdin, stdout};
@@ -7,30 +8,30 @@ mod io;
 mod test;
 mod types;
 
+#[derive(Clone)]
+enum InputPath {
+    Connect,
+    Test,
+    Options,
+}
+
 fn select_input(midi: MidiInput) -> Option<usize> {
-    let mut input = String::new();
-    let mut selection: u8 = 0;
+    let result = get_input(
+        "Select path [(c)onnect | (t)est | (o)ptions]: ",
+        &[
+            ("c", InputPath::Connect),
+            ("connect", InputPath::Connect),
+            ("t", InputPath::Test),
+            ("test", InputPath::Test),
+            ("o", InputPath::Options),
+            ("options", InputPath::Options),
+        ],
+    );
 
-    print!("Select path [(c)onnect | (t)est | (o)pts]: ");
-
-    while selection == 0 {
-        input.clear();
-        stdout().flush().unwrap();
-        stdin().read_line(&mut input).unwrap();
-
-        selection = match input.trim() {
-            "c" | "connect" => 1,
-            "t" | "test" => 2,
-            "o" | "opts" => 3,
-            _ => continue,
-        }
-    }
-
-    return match selection {
-        1 => io::connect::select_device(midi),
-        2 => io::tests::select_test(midi),
-        3 => io::opts::select_opt(),
-        _ => None,
+    return match result.unwrap() {
+        InputPath::Connect => io::connect::select_device(midi),
+        InputPath::Test => io::tests::select_test(midi),
+        InputPath::Options => io::opts::select_opt(),
     };
 }
 
