@@ -14,9 +14,13 @@ fn run_test<const L: usize>(test_data: &MessageLog<L>) {
     }
 }
 
+const TEST_NAMES: [&str; 1] = ["Basic Tune"];
+
 fn print_tests() {
-    println!("Available options:");
-    println!("0 - BasicTune");
+    println!("Select index of available options:");
+		for(index, name) in TEST_NAMES.iter().enumerate() {
+			println!("{} - {}", index, name);
+		}
 }
 
 pub fn select_test(midi: MidiInput) -> Option<usize> {
