@@ -4,10 +4,10 @@ use std::error::Error;
 use std::io::{Write, stdin, stdout};
 // ---
 mod io;
-mod types;
 mod test;
+mod types;
 
-fn select_input(midi: MidiInput) -> () {
+fn select_input(midi: MidiInput) -> Option<usize> {
     let mut input = String::new();
     let mut selection: u8 = 0;
 
@@ -26,12 +26,21 @@ fn select_input(midi: MidiInput) -> () {
         }
     }
 
-    match selection {
+    return match selection {
         1 => io::connect::select_device(midi),
         2 => io::tests::select_test(midi),
         3 => io::opts::select_opt(),
         _ => None,
     };
+}
+
+fn pause_for_enter() {
+    let mut input = String::new();
+    let mut stdout = stdout();
+    stdout.write(b"Press Enter to exit.").unwrap();
+    stdout.flush().unwrap();
+    input.clear();
+    stdin().read_line(&mut input).unwrap();
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -48,15 +57,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    select_input(midi);
+    let is_listening = select_input(midi);
 
-    let mut input = String::new();
-    let mut stdout = stdout();
-    stdout.write(b"Press Enter to exit.").unwrap();
-    stdout.flush().unwrap();
-    input.clear();
-    stdin().read_line(&mut input).unwrap();
-
+    if is_listening.is_none() {
+        return Ok(());
+    }
+    pause_for_enter();
     println!("Shutting down...");
     // let (_, log_all_bytes) = conn_in.close();
     // println!("Received final bytes: {:?}", log_all_bytes);

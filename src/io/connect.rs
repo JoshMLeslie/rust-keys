@@ -74,5 +74,5 @@ pub fn select_device(midi: MidiInput) -> Option<usize> {
             println!("Try again.\n");
             print_ports(&midi);
         },
-    }
+    };
 }
