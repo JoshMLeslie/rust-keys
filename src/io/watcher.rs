@@ -1,5 +1,5 @@
 use std::env;
-use std::sync::mpsc::{Sender, channel};
+use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
