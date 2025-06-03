@@ -1,12 +1,46 @@
 use midir::MidiInput;
+use std::io::{Write, stdin, stdout};
+use std::usize;
+// ---
+use crate::io::watcher::spawn_watcher;
+use crate::test::basic_tune;
+use crate::types::midi::MessageLog;
+
+fn run_test<const L: usize>(test_data: &MessageLog<L>) {
+    let data = test_data.data;
+
+    for (t, msg) in data.iter() {
+        println!("{:>6}: {:?}", t, msg);
+    }
+}
 
 fn print_tests() {
     println!("Available options:");
-    println!("none");
+    println!("0 - BasicTune");
 }
 
 pub fn select_test(midi: MidiInput) -> Option<usize> {
+    let ports = midi.ports();
+    let mut input = String::new();
+
+    let tx = spawn_watcher().clone();
+
     print_tests();
+    input.clear();
+    stdout().flush().unwrap();
+    stdin().read_line(&mut input).unwrap();
+
+    match input.trim().parse::<usize>() {
+        Ok(index) if index <= 0 => match index {
+            0 => run_test(&basic_tune::LOG),
+            _ => (),
+        },
+        Ok(index) => println!("Invalid selection: {}. Must be less than 1.", index,),
+        Err(e) => println!(
+            "Invalid selection: {:?}. Must be a number less than 1.",
+            e.kind(),
+        ),
+    }
 
     return None;
 }

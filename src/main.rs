@@ -5,6 +5,7 @@ use std::io::{Write, stdin, stdout};
 // ---
 mod io;
 mod types;
+mod test;
 
 fn select_input(midi: MidiInput) -> () {
     let mut input = String::new();
