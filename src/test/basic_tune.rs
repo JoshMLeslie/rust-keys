@@ -1,6 +1,6 @@
 use crate::types;
 
-pub const BASIC_TUNE: types::midi::MessageLog = vec![
+pub const DATA: types::midi::MessageLog = vec![
     (2066617, [144, 67, 64]),
     (2066620, [144, 60, 48]),
     (2821620, [144, 67, 0]),
