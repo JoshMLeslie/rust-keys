@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# **copy** this into .git/hooks
+
+# Run cargo build and abort push on failure
+if ! cargo build --quiet; then
+  echo "----------------------------------------"
+  echo "cargo build failed. Commit aborted."
+  echo "add --no-verify if this **must** happen."
+  echo "----------------------------------------"
+  exit 1
+fi
