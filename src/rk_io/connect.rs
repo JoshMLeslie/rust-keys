@@ -1,4 +1,4 @@
-use midir::MidiInput;
+use midir::{MidiInput, MidiInputConnection};
 use std::io::{Write, stdin, stdout};
 use std::sync::mpsc::Sender;
 // ---
@@ -17,9 +17,13 @@ fn print_ports(midi: &MidiInput) {
     }
 }
 
-fn open_conn(midi: MidiInput, port: &midir::MidiInputPort, tx: Sender<types::midi::Message>) {
+fn open_conn(
+    midi: MidiInput,
+    port: &midir::MidiInputPort,
+    tx: Sender<types::midi::Message>,
+) -> MidiInputConnection<()> {
     println!("Opening connection...");
-    let _conn_in: midir::MidiInputConnection<()> = midi
+    return midi
         .connect(
             &port,
             "midir-read-input",
@@ -40,11 +44,11 @@ fn open_conn(midi: MidiInput, port: &midir::MidiInputPort, tx: Sender<types::mid
         .unwrap();
 }
 
-pub fn select_device(midi: MidiInput) -> Option<usize> {
+pub fn select_device(midi: MidiInput) -> Option<MidiInputConnection<()>> {
     let ports = midi.ports();
     let mut input = String::new();
 
-    let tx = spawn_watcher().clone();
+    let tx = spawn_watcher();
 
     print_ports(&midi);
     match ports.len() {
@@ -57,8 +61,8 @@ pub fn select_device(midi: MidiInput) -> Option<usize> {
 
             match input.trim().parse::<usize>() {
                 Ok(index) if index < ports.len() => {
-                    open_conn(midi, &ports[index], tx);
-                    return Some(1);
+                    let conn = open_conn(midi, &ports[index], tx);
+                    return Some(conn);
                 }
                 Ok(index) => println!(
                     "Invalid selection: {}. Must be less than {}.",

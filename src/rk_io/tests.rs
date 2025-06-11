@@ -1,6 +1,6 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{BuildStreamError, Data, Stream};
-use midir::MidiInput;
+use midir::{MidiInput, MidiInputConnection};
 use std::io::{Write, stdin, stdout};
 use std::usize;
 // ---
@@ -27,7 +27,8 @@ fn print_tests() {
     }
 }
 
-pub fn select_test(midi: MidiInput) -> Option<usize> {
+pub fn select_test(midi: MidiInput) -> Option<MidiInputConnection<()>> {
+    // TODO / HALF DONE
     let ports = midi.ports();
     let mut input = String::new();
 

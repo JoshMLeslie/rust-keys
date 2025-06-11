@@ -1,6 +1,6 @@
 use dotenv::dotenv;
+use midir::{Ignore, MidiInput, MidiInputConnection};
 use rk_io::user_input::{get_input, pause_for_enter};
-use midir::{Ignore, MidiInput};
 use std::error::Error;
 // ---
 mod rk_io;
@@ -14,7 +14,7 @@ enum InputPath {
     Options,
 }
 
-fn select_input(midi: MidiInput) -> Option<usize> {
+fn select_input(midi: MidiInput) -> Option<MidiInputConnection<()>> {
     let result = get_input(
         "Select path [(c)onnect | (t)est | (o)ptions]: ",
         &[
@@ -48,13 +48,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let is_listening = select_input(midi);
-
-    if is_listening.is_none() {
-        return Ok(());
+    match select_input(midi) {
+        Some(_conn) => {
+            println!("Connection established");
+            pause_for_enter();
+            println!("Shutting down...");
+        }
+        None => {
+            println!("No connection established");
+        }
     }
-    pause_for_enter();
-    println!("Shutting down...");
+
     // let (_, log_all_bytes) = conn_in.close();
     // println!("Received final bytes: {:?}", log_all_bytes);
     // println!("Terminated.");

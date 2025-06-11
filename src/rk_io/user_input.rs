@@ -22,7 +22,7 @@ pub fn get_input<T: Clone>(prompt: &str, options: &[(&str, T)]) -> Option<T> {
 pub fn pause_for_enter() {
     let mut input = String::new();
     let mut stdout = stdout();
-    stdout.write(b"Press Enter to exit.").unwrap();
+    stdout.write(b"Press Enter to exit.\n").unwrap();
     stdout.flush().unwrap();
     input.clear();
     stdin().read_line(&mut input).unwrap();
