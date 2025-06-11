@@ -1,7 +1,7 @@
 // see MIDI_BYTES.md
-pub type MessageData = [u8; 3];
+pub type MessageData = [u8; 3]; // [message_type, note, velocity]
 // time-stamped data
 pub type Message = (u64, MessageData);
 pub struct MessageLog<const L: usize> {
-	pub data: [(u64, [u8; 3]); L],
+    pub data: [(u64, [u8; 3]); L],
 }
