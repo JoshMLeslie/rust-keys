@@ -13,11 +13,12 @@ enum InputPath {
     Connect,
     Test,
     Options,
+    Quit,
 }
 
 fn select_input(midi: MidiInput) -> Option<MidiInputConnection<()>> {
     let result = get_input(
-        "Select path [(c)onnect | (t)est | (o)ptions]: ",
+        "Select path [(c)onnect | (t)est | (o)ptions | (q)uit]: ",
         &[
             ("c", InputPath::Connect),
             ("connect", InputPath::Connect),
@@ -25,6 +26,8 @@ fn select_input(midi: MidiInput) -> Option<MidiInputConnection<()>> {
             ("test", InputPath::Test),
             ("o", InputPath::Options),
             ("options", InputPath::Options),
+            ("q", InputPath::Quit),
+            ("quit", InputPath::Quit),
         ],
     );
 
@@ -32,6 +35,7 @@ fn select_input(midi: MidiInput) -> Option<MidiInputConnection<()>> {
         InputPath::Connect => rk_io::connect::select_device(midi),
         InputPath::Test => rk_io::playback::select_playback(midi),
         InputPath::Options => rk_io::opts::select_opt(),
+        InputPath::Quit => std::process::exit(0)
     };
 }
 
