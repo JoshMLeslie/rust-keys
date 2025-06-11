@@ -4,20 +4,17 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 // ---
-use crate::types;
+use crate::types::midi::Message;
 
-pub fn spawn_watcher() -> (
-    Sender<types::midi::Message>,
-    Receiver<Vec<types::midi::Message>>,
-) {
+pub fn spawn_watcher() -> (Sender<Message>, Receiver<Vec<Message>>) {
     let threshold_micro_sec = env::var("THRESHOLD_MICRO_SEC")
         .unwrap()
         .parse::<u64>()
         .unwrap();
 
-    let (tx, rx) = channel::<types::midi::Message>();
+    let (tx, rx) = channel::<Message>();
     // Output channel for batched MIDI messages (Observable stream)
-    let (batch_tx, batch_rx) = channel::<Vec<types::midi::Message>>();
+    let (batch_tx, batch_rx) = channel::<Vec<Message>>();
 
     let batch = Arc::new(Mutex::new(Vec::new()));
     let batch_clone = Arc::clone(&batch);
