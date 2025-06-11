@@ -48,7 +48,7 @@ pub fn select_device(midi: MidiInput) -> Option<MidiInputConnection<()>> {
     let ports = midi.ports();
     let mut input = String::new();
 
-    let tx = spawn_watcher();
+    let (tx, _) = spawn_watcher();
 
     print_ports(&midi);
     match ports.len() {

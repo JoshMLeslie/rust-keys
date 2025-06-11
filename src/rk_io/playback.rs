@@ -32,7 +32,7 @@ pub fn select_playback(midi: MidiInput) -> Option<MidiInputConnection<()>> {
     let ports = midi.ports();
     let mut input = String::new();
 
-    let tx = spawn_watcher();
+    let (tx, _) = spawn_watcher();
 
     let stream = spawn_audio_loop();
 
