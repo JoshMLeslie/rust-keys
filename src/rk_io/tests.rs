@@ -1,10 +1,10 @@
-use cpal::{BuildStreamError, Data, Stream};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::{BuildStreamError, Data, Stream};
 use midir::MidiInput;
 use std::io::{Write, stdin, stdout};
 use std::usize;
 // ---
-use crate::io::watcher::spawn_watcher;
+use crate::rk_io::watcher::spawn_watcher;
 use crate::test::basic_tune;
 use crate::types::midi::MessageLog;
 
@@ -33,7 +33,7 @@ pub fn select_test(midi: MidiInput) -> Option<usize> {
 
     let tx = spawn_watcher().clone();
 
-		let stream = spawn_audio_loop();
+    let stream = spawn_audio_loop();
 
     print_tests();
     input.clear();

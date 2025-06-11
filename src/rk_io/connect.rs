@@ -2,7 +2,7 @@ use midir::MidiInput;
 use std::io::{Write, stdin, stdout};
 use std::sync::mpsc::Sender;
 // ---
-use crate::io::watcher::spawn_watcher;
+use crate::rk_io::watcher::spawn_watcher;
 use crate::types;
 
 fn print_ports(midi: &MidiInput) {

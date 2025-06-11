@@ -1,9 +1,9 @@
 use dotenv::dotenv;
-use io::user_input::{get_input, pause_for_enter};
+use rk_io::user_input::{get_input, pause_for_enter};
 use midir::{Ignore, MidiInput};
 use std::error::Error;
 // ---
-mod io;
+mod rk_io;
 mod test;
 mod types;
 
@@ -28,9 +28,9 @@ fn select_input(midi: MidiInput) -> Option<usize> {
     );
 
     return match result.unwrap() {
-        InputPath::Connect => io::connect::select_device(midi),
-        InputPath::Test => io::tests::select_test(midi),
-        InputPath::Options => io::opts::select_opt(),
+        InputPath::Connect => rk_io::connect::select_device(midi),
+        InputPath::Test => rk_io::tests::select_test(midi),
+        InputPath::Options => rk_io::opts::select_opt(),
     };
 }
 
