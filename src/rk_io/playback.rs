@@ -20,14 +20,14 @@ fn run_test<const L: usize>(test_data: &MessageLog<L>) {
 
 const TEST_NAMES: [&str; 1] = ["Basic Tune"];
 
-fn print_tests() {
+fn print_playback_opts() {
     println!("Select index of available options:");
     for (index, name) in TEST_NAMES.iter().enumerate() {
         println!("{} - {}", index, name);
     }
 }
 
-pub fn select_test(midi: MidiInput) -> Option<MidiInputConnection<()>> {
+pub fn select_playback(midi: MidiInput) -> Option<MidiInputConnection<()>> {
     // TODO / HALF DONE
     let ports = midi.ports();
     let mut input = String::new();
@@ -36,7 +36,7 @@ pub fn select_test(midi: MidiInput) -> Option<MidiInputConnection<()>> {
 
     let stream = spawn_audio_loop();
 
-    print_tests();
+    print_playback_opts();
     input.clear();
     stdout().flush().unwrap();
     stdin().read_line(&mut input).unwrap();

@@ -29,7 +29,7 @@ fn select_input(midi: MidiInput) -> Option<MidiInputConnection<()>> {
 
     return match result.unwrap() {
         InputPath::Connect => rk_io::connect::select_device(midi),
-        InputPath::Test => rk_io::tests::select_test(midi),
+        InputPath::Test => rk_io::playback::select_playback(midi),
         InputPath::Options => rk_io::opts::select_opt(),
     };
 }
