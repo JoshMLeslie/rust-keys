@@ -1,8 +1,7 @@
 use dotenv::dotenv;
-use io::user_input::get_input;
+use io::user_input::{get_input, pause_for_enter};
 use midir::{Ignore, MidiInput};
 use std::error::Error;
-use std::io::{Write, stdin, stdout};
 // ---
 mod io;
 mod test;
@@ -33,15 +32,6 @@ fn select_input(midi: MidiInput) -> Option<usize> {
         InputPath::Test => io::tests::select_test(midi),
         InputPath::Options => io::opts::select_opt(),
     };
-}
-
-fn pause_for_enter() {
-    let mut input = String::new();
-    let mut stdout = stdout();
-    stdout.write(b"Press Enter to exit.").unwrap();
-    stdout.flush().unwrap();
-    input.clear();
-    stdin().read_line(&mut input).unwrap();
 }
 
 fn main() -> Result<(), Box<dyn Error>> {

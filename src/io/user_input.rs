@@ -1,9 +1,6 @@
-use std::io::{stdin, stdout, Write};
+use std::io::{Write, stdin, stdout};
 
-pub fn get_input<T: Clone>(
-    prompt: &str,
-    options: &[(&str, T)],
-) -> Option<T> {
+pub fn get_input<T: Clone>(prompt: &str, options: &[(&str, T)]) -> Option<T> {
     let mut input = String::new();
 
     print!("{}", prompt);
@@ -20,4 +17,13 @@ pub fn get_input<T: Clone>(
             }
         }
     }
+}
+
+pub fn pause_for_enter() {
+    let mut input = String::new();
+    let mut stdout = stdout();
+    stdout.write(b"Press Enter to exit.").unwrap();
+    stdout.flush().unwrap();
+    input.clear();
+    stdin().read_line(&mut input).unwrap();
 }
