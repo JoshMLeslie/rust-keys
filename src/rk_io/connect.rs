@@ -3,6 +3,7 @@ use std::io::{Write, stdin, stdout};
 use std::sync::mpsc::Sender;
 // ---
 use crate::rk_io::watcher::spawn_watcher;
+use crate::rk_ui::ui::run_app;
 use crate::types;
 
 fn print_ports(midi: &MidiInput) {
@@ -48,7 +49,7 @@ pub fn select_device(midi: MidiInput) -> Option<MidiInputConnection<()>> {
     let ports = midi.ports();
     let mut input = String::new();
 
-    let (tx, _) = spawn_watcher();
+    let (tx, rx) = spawn_watcher();
 
     print_ports(&midi);
     match ports.len() {
@@ -62,6 +63,10 @@ pub fn select_device(midi: MidiInput) -> Option<MidiInputConnection<()>> {
             match input.trim().parse::<usize>() {
                 Ok(index) if index < ports.len() => {
                     let conn = open_conn(midi, &ports[index], tx);
+                    if let Err(e) = run_app(rx) {
+                        eprintln!("UI error: {}", e);
+                        return None;
+                    }
                     return Some(conn);
                 }
                 Ok(index) => println!(
