@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use crate::types::midi::Message;
 
 pub fn spawn_watcher() -> (Sender<Message>, Receiver<Vec<Message>>) {
+    let debug: bool = env::var("DEBUG").unwrap_or_default().eq("true");
     let threshold_micro_sec = env::var("THRESHOLD_MICRO_SEC")
         .unwrap()
         .parse::<u64>()
@@ -32,9 +33,12 @@ pub fn spawn_watcher() -> (Sender<Message>, Receiver<Vec<Message>>) {
             if last.elapsed() > Duration::from_micros(threshold_micro_sec) {
                 let mut b = batch_clone.lock().unwrap();
                 if !b.is_empty() {
-                    println!("Note(s):");
-                    for (t, msg) in b.iter() {
-                        println!("  {:.3}: {:?}", t, msg);
+                    if debug {
+                        println!("Note(s):");
+                        for (t, msg) in b.iter() {
+                            println!("  {:.3}: {:?}", t, msg);
+                        }
+                        println!("--");
                     }
 
                     let batch_to_send = b.clone();
@@ -44,7 +48,6 @@ pub fn spawn_watcher() -> (Sender<Message>, Receiver<Vec<Message>>) {
                         break;
                     }
 
-                    println!("--");
                     b.clear();
                 }
 
