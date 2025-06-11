@@ -4,6 +4,7 @@ use rk_io::user_input::{get_input, pause_for_enter};
 use std::error::Error;
 // ---
 mod rk_io;
+mod rk_ui;
 mod test;
 mod types;
 
