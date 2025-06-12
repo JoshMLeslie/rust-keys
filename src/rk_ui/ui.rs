@@ -1,7 +1,9 @@
 use crate::{
     rk_ui::{
+        constants::PIANO_PATTERN,
         render_piano::{self},
-        types::{NoteBar, UiEngine}, util::count_white_keys_in_range,
+        types::{NoteBar, UiEngine},
+        util::count_white_keys_in_range,
     },
     types::midi::Message,
 };
@@ -152,18 +154,55 @@ fn map_note_to_x_position(midi_note: u8, screen_width: u16) -> u16 {
     if midi_note < min_note {
         return 0;
     }
-    if midi_note > max_note {
-        return screen_width.saturating_sub(1);
+       let white_key_count = count_white_keys_in_range(min_note, max_note);
+    let available_width = screen_width;
+
+    let white_key_width = if white_key_count > 0 {
+        available_width / white_key_count
+    } else {
+        1
+    };
+    let width_remainder = if white_key_count > 0 {
+        available_width % white_key_count
+    } else {
+        0
+    };
+
+    let left_padding = width_remainder / 2;
+
+    // Check if this note is a white key
+    let key_index = (midi_note % 12) as usize;
+    
+    if PIANO_PATTERN[key_index] {
+        // White key - calculate position
+        // Count white keys BEFORE this note (not including this note)
+        let white_keys_before = if midi_note > min_note {
+            count_white_keys_in_range(min_note, midi_note - 1)
+        } else {
+            0
+        };
+        let white_key_x = left_padding + white_keys_before * white_key_width;
+        white_key_x + white_key_width / 2 // Return center of white key
+    } else {
+        // Black key - calculate position between adjacent white keys
+        let (left_white, _right_white) = match key_index {
+            1 => (midi_note - 1, midi_note + 1),   // C# between C and D
+            3 => (midi_note - 1, midi_note + 1),   // D# between D and E  
+            6 => (midi_note - 1, midi_note + 1),   // F# between F and G
+            8 => (midi_note - 1, midi_note + 1),   // G# between G and A
+            10 => (midi_note - 1, midi_note + 1),  // A# between A and B
+            _ => return 0,
+        };
+
+        // Calculate positions of adjacent white keys
+        let left_white_keys = if left_white >= min_note {
+            count_white_keys_in_range(min_note, left_white - 1)
+        } else {
+            0
+        };
+        let left_white_x = left_padding + left_white_keys * white_key_width;
+        
+        // Position black key at 2/3 into the left white key (matching your piano renderer)
+        left_white_x + white_key_width * 2 / 3
     }
-
-    // Map to white key positions for better alignment
-    let white_keys_before = count_white_keys_in_range(min_note, midi_note);
-    let total_white_keys = count_white_keys_in_range(min_note, max_note);
-
-    if total_white_keys == 0 {
-        return 0;
-    }
-
-    let position_ratio = white_keys_before as f32 / total_white_keys as f32;
-    (position_ratio * (screen_width - 1) as f32) as u16
 }
