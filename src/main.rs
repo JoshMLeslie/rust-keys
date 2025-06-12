@@ -2,11 +2,14 @@ use dotenv::dotenv;
 use midir::{Ignore, MidiInput, MidiInputConnection};
 use rk_io::user_input::{get_input, pause_for_enter};
 use std::error::Error;
+
+use crate::util::logger::Logger;
 // ---
 mod rk_io;
 mod rk_ui;
 mod test;
 mod types;
+mod util;
 
 #[derive(Clone)]
 enum InputPath {
@@ -35,14 +38,15 @@ fn select_input(midi: MidiInput) -> Option<MidiInputConnection<()>> {
         InputPath::Connect => rk_io::connect::select_device(midi),
         InputPath::Test => rk_io::playback::select_playback(midi),
         InputPath::Options => rk_io::opts::select_opt(),
-        InputPath::Quit => std::process::exit(0)
+        InputPath::Quit => std::process::exit(0),
     };
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // env init
+    // setup
     dotenv().ok();
-    // end env init
+    Logger::init();
+    // end setup
 
     let mut midi: MidiInput = MidiInput::new("midir input")?;
     midi.ignore(Ignore::All); // sys-log messages, other data persists
