@@ -1,4 +1,10 @@
-use crate::types::midi::Message;
+use crate::{
+    rk_ui::{
+        render_piano::{self},
+        types::{NoteBar, UiEngine}, util::count_white_keys_in_range,
+    },
+    types::midi::Message,
+};
 use crossterm::{
     event::{self, Event, KeyCode},
     execute,
@@ -7,24 +13,12 @@ use crossterm::{
 use ratatui::{
     Frame, Terminal,
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Layout},
     prelude::Color,
     style::Style,
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders},
 };
-use std::sync::mpsc::Receiver;
-
-struct App {
-    falling_notes: Vec<NoteBar>,
-    piano_keys: Vec<bool>, // Simple array for which keys are pressed
-    should_quit: bool,
-}
-
-struct NoteBar {
-    note: u8,
-    y_position: f32,
-    velocity: u8,
-}
+use std::{process::exit, sync::mpsc::Receiver};
 
 pub fn run_app(midi_receiver: Receiver<Vec<Message>>) -> Result<(), Box<dyn std::error::Error>> {
     // Setup terminal
@@ -34,37 +28,33 @@ pub fn run_app(midi_receiver: Receiver<Vec<Message>>) -> Result<(), Box<dyn std:
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App {
-        falling_notes: Vec::new(),
-        piano_keys: vec![false; 88], // 88 piano keys
-        should_quit: false,
-    };
+    let mut engine = UiEngine::new();
 
     loop {
         // Process MIDI messages (non-blocking)
         while let Ok(message) = midi_receiver.try_recv() {
-            process_midi_message(&mut app, message);
+            process_midi_message(&mut engine, message);
         }
 
         // Update falling notes positions
-        update_falling_notes(&mut app);
+        update_falling_notes(&mut engine);
 
         // Render UI
-        terminal.draw(|f| ui(f, &app))?;
+        terminal.draw(|f| ui(f, &mut engine))?;
 
         // Handle keyboard input (for quitting, etc.)
         if event::poll(std::time::Duration::from_millis(16))? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') | KeyCode::Esc => {
-                        app.should_quit = true;
+                        engine.should_quit = true;
                     }
                     _ => (),
                 }
             }
         }
 
-        if app.should_quit {
+        if engine.should_quit {
             break;
         }
         // Small sleep to prevent excessive CPU usage
@@ -77,44 +67,45 @@ pub fn run_app(midi_receiver: Receiver<Vec<Message>>) -> Result<(), Box<dyn std:
     Ok(())
 }
 
-fn process_midi_message(app: &mut App, messages: Vec<Message>) {
-    for (_timestamp, [_status, note, velocity]) in messages {
-        if velocity > 0 {
-            // spawn falling note
-            app.falling_notes.push(NoteBar {
-                note,
-                y_position: 0.0,
-                velocity,
-            });
+fn process_midi_message(engine: &mut UiEngine, messages: Vec<Message>) {
+    for (_timestamp, [status, note, velocity]) in messages {
+        match status {
+            0x90..=0x9f if velocity > 0 => {
+                // 144..159 midi NOTE_ON for channel_x
+                engine.add_note(note, velocity);
+                engine.try_press_key(note);
+            }
+            0x80..=0x8f | 0x90..=0x9f if velocity == 0 => {
+                // 128..143 NOTE_OFF | 144..159 midi NOTE_ON but vel = 0 for channel_x
+                engine.try_release_key(note);
+            }
+            _ => {
+                eprintln!("Unhandled midi status");
+                exit(1);
+            }
         }
     }
 }
 
-fn update_falling_notes(app: &mut App) {
+fn update_falling_notes(engine: &mut UiEngine) {
     let fall_speed = 0.02; // Adjust this to control speed (higher = faster)
-
-    for note in &mut app.falling_notes {
-        note.y_position += fall_speed;
-    }
-
-    // Remove notes that have fallen off the bottom
-    app.falling_notes.retain(|note| note.y_position < 1.0);
+    engine.update_pos(fall_speed);
 }
 
-fn ui(f: &mut Frame, app: &App) {
+fn ui(f: &mut Frame, engine: &mut UiEngine) {
     let chunks = Layout::vertical([
-        Constraint::Percentage(80), // Falling notes area
-        Constraint::Percentage(20), // Piano keyboard area
+        Constraint::Percentage(75), // Falling notes area
+        Constraint::Percentage(25), // Piano keyboard area
     ])
     .split(f.area());
 
-    render_falling_notes(f, app, chunks[0]);
-    render_piano(f, app, chunks[1]);
+    render_falling_notes(f, engine, chunks[0]);
+    render_piano::render(f, engine, chunks[1], 21, 108);
 }
 
-fn render_falling_notes(f: &mut Frame, app: &App, area: ratatui::layout::Rect) {
+fn render_falling_notes(f: &mut Frame, engine: &UiEngine, area: ratatui::layout::Rect) {
     let block = Block::default()
-        .title("Falling Notes")
+        .title(" Falling Notes ")
         .borders(Borders::ALL);
     let inner_area = block.inner(area);
     f.render_widget(block, area);
@@ -124,7 +115,7 @@ fn render_falling_notes(f: &mut Frame, app: &App, area: ratatui::layout::Rect) {
         note,
         y_position,
         velocity,
-    } in &app.falling_notes
+    } in &engine.falling_notes
     {
         let x_pos = map_note_to_x_position(note, inner_area.width);
 
@@ -165,21 +156,14 @@ fn map_note_to_x_position(midi_note: u8, screen_width: u16) -> u16 {
         return screen_width.saturating_sub(1);
     }
 
-    let note_range = max_note - min_note;
-    let position_ratio = (midi_note - min_note) as f32 / note_range as f32;
-    return (position_ratio * (screen_width - 1) as f32) as u16;
-}
+    // Map to white key positions for better alignment
+    let white_keys_before = count_white_keys_in_range(min_note, midi_note);
+    let total_white_keys = count_white_keys_in_range(min_note, max_note);
 
-fn render_piano(f: &mut Frame, app: &App, area: ratatui::layout::Rect) {
-    let block = Block::default().title("Piano").borders(Borders::ALL);
-    let inner_area = block.inner(area);
-    f.render_widget(block, area);
+    if total_white_keys == 0 {
+        return 0;
+    }
 
-    // Simple piano representation for now - we can make this fancier later
-    let piano_text = "C  C# D  D# E  F  F# G  G# A  A# B ";
-    let piano_widget = Paragraph::new(piano_text)
-        .style(Style::default().fg(Color::White))
-        .block(Block::default().borders(Borders::NONE));
-
-    f.render_widget(piano_widget, inner_area);
+    let position_ratio = white_keys_before as f32 / total_white_keys as f32;
+    (position_ratio * (screen_width - 1) as f32) as u16
 }
