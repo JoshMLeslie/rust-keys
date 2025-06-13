@@ -40,11 +40,11 @@ pub struct PianoKeyboard {
     pub key_range: (u8, u8),      // e.g., (60, 72) for middle C octave
 }
 
-pub struct KeyDrawInfo {
-    pub rect: Rect,
+pub struct PianoKey {
     pub bg_color: Color,
     pub fg_color: Color,
     pub key_name: String,
+    pub show_label: bool,
 }
 
 pub struct NoteContext {
