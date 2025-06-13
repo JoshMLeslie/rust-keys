@@ -1,14 +1,13 @@
-use log::debug;
 use ratatui::{
     Frame,
     layout::Rect,
     style::{Color, Style},
-    widgets::{Block, Borders, Clear, Paragraph},
+    widgets::{Block, Borders},
 };
 
 use crate::rk_ui::{
     constants::{KEY_NAMES, PIANO_PATTERN},
-    types::{KeyContext, KeyDrawInfo, NoteContext, RenderContext, UiEngine},
+    types::{KeyContext, NoteContext, RenderContext, UiEngine},
     util::{count_white_keys_in_range, get_key_colors},
 };
 

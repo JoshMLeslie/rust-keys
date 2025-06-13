@@ -1,5 +1,3 @@
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{BuildStreamError, Data, Stream};
 use midir::{MidiInput, MidiInputConnection};
 use std::io::{Write, stdin, stdout};
 use std::usize;
