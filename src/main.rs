@@ -10,6 +10,7 @@ mod rk_ui;
 mod test;
 mod types;
 mod util;
+mod multicast;
 
 #[derive(Clone)]
 enum InputPath {
