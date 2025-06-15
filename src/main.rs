@@ -3,7 +3,7 @@ use midir::{Ignore, MidiInput, MidiInputConnection};
 use rk_io::user_input::{get_input, pause_for_enter};
 use std::error::Error;
 
-use crate::util::logger::Logger;
+use crate::{multicast::multicast::PeerNetwork, util::logger::Logger};
 // ---
 mod rk_io;
 mod rk_ui;
@@ -45,8 +45,10 @@ fn select_input(midi: MidiInput) -> Option<MidiInputConnection<()>> {
 
 fn main() -> Result<(), Box<dyn Error>> {
     // setup
-    dotenv().ok();
+		dotenv().ok();
     Logger::init();
+
+    let network = PeerNetwork::new()?.start();
     // end setup
 
     let mut midi: MidiInput = MidiInput::new("midir input")?;
